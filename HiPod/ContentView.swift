@@ -6,6 +6,7 @@
 //  - CD →  16‑bit / 44.1 kHz (ALAC)
 //  - BD AUDIO → 16‑bit / 48 kHz (ALAC)
 //  - SACD/DSD → 24‑bit / 48 kHz (ALAC)
+//  - VINYL/LP → 24‑bit / 44.1 kHz (ALAC) [Optional]
 // Notes:
 //  - App warns clearly about *any* lossy operations (resample, bit‑depth reduction, downmix, DSD→PCM filtering/headroom).
 //  - iPod Classic stock firmware is reliably compatible only with 16/44.1. 48 kHz and/or 24‑bit may not play; the UI surfaces this.
@@ -27,6 +28,7 @@ struct IPodPrepApp: App {
 
 enum OutputProfile: String, CaseIterable, Identifiable {
     case cd = "CD"
+    case vinyl = "LP"
     case bdAudio = "BDA"
     case sacd = "SACD/DSD"
     var id: String { rawValue }
@@ -35,6 +37,7 @@ enum OutputProfile: String, CaseIterable, Identifiable {
     var fullDisplayName: String {
         switch self {
         case .cd: return "CD (16/44.1)"
+        case .vinyl: return "LP (24/44.1)"
         case .bdAudio: return "BD AUDIO (16/48)"
         case .sacd: return "SACD/DSD (24/48)"
         }
@@ -53,9 +56,28 @@ enum OutputProfile: String, CaseIterable, Identifiable {
         }
     }
 
-    var targetSampleRate: Int { switch self { case .cd: return 44100; case .bdAudio, .sacd: return 48000 } }
-    var targetBitDepth: Int { switch self { case .cd, .bdAudio: return 16; case .sacd: return 24 } }
-    var targetSuffix: String { switch self { case .cd: return "CD_16-44"; case .bdAudio: return "BD_16-48"; case .sacd: return "SACD_24-48" } }
+    var targetSampleRate: Int { 
+        switch self { 
+        case .cd, .vinyl: return 44100
+        case .bdAudio, .sacd: return 48000
+        }
+    }
+    
+    var targetBitDepth: Int { 
+        switch self { 
+        case .cd, .bdAudio: return 16
+        case .sacd, .vinyl: return 24
+        }
+    }
+    
+    var targetSuffix: String { 
+        switch self { 
+        case .cd: return "CD_16-44"
+        case .vinyl: return "LP_24-44"
+        case .bdAudio: return "BD_16-48"
+        case .sacd: return "SACD_24-48"
+        }
+    }
 }
 
 struct SelectedFile: Identifiable, Hashable {
@@ -114,7 +136,7 @@ struct DetectedIPod: Identifiable, Hashable {
 }
 
 enum PlayerType: String, Codable {
-    case ipod = "Apple iPod"
+    case ipod = "iPod"
     case epod = "ePod"
     case aplayer = "aPlayer (Android)"
 }
@@ -156,6 +178,15 @@ final class PrepViewModel: ObservableObject {
     @AppStorage("preserveOriginalFile") var preserveOriginalFile: Bool = false
     @AppStorage("pcmRequired") var pcmRequired: Bool = false
     @AppStorage("renameFiles") var renameFiles: Bool = true
+    @AppStorage("addDiscIdentity") var addDiscIdentity: Bool = false
+    
+    // Disc Handling Settings
+    @AppStorage("vinylSupport") var vinylSupport: Bool = false
+    @AppStorage("cdSubType") var cdSubType: String = "CD"
+    @AppStorage("sacdSubType") var sacdSubType: String = "SACD"
+    @AppStorage("vinylSubType") var vinylSubType: String = "LP"
+    @AppStorage("bdaSubType") var bdaSubType: String = "BDA"
+    @AppStorage("convertToMatchDiscType") var convertToMatchDiscType: Bool = false
     
     // DSD Conversion Settings
     @AppStorage("dsd64TargetRate") var dsd64TargetRate: Int = 88200
@@ -775,6 +806,19 @@ final class PrepViewModel: ObservableObject {
         return w
     }
 
+    // MARK: Get Album Metadata
+    private func getAlbumName(ffprobe: String, url: URL) -> String? {
+        let args = ["-v", "error", "-show_entries", "format_tags=album", "-of", "default=noprint_wrappers=1:nokey=1", url.path]
+        
+        let (out, _, code) = Self.run(cmd: ffprobe, args: args)
+        
+        if code == 0, !out.isEmpty {
+            let albumName = out.trimmingCharacters(in: .whitespacesAndNewlines)
+            return albumName.isEmpty ? nil : albumName
+        }
+        return nil
+    }
+    
     private func probeFile(ffprobe: String, url: URL) -> FormatInfo? {
         let args = ["-v","error","-select_streams","a","-show_entries","stream=index,codec_name,sample_rate,bits_per_raw_sample,channels,channel_layout","-of","json", url.path]
         
@@ -970,11 +1014,33 @@ final class PrepViewModel: ObservableObject {
                     suffix = profile.targetSuffix
                 }
                 
-                // Set output format
-                if isNonIPod {
+                // Set output format based on disc type matching (if enabled)
+                if isNonIPod && convertToMatchDiscType {
+                    switch profile {
+                    case .cd:
+                        outputCodec = "pcm_s16le"
+                        fileExtension = "aif"
+                        suffix = "CD_AIFF_\(tgtBits)-\(tgtSR/1000)"
+                    case .bdAudio:
+                        outputCodec = "flac"
+                        fileExtension = "mka"
+                        suffix = "BDA_MKA_\(tgtBits)-\(tgtSR/1000)"
+                    case .sacd:
+                        // SACD stays DSF (already handled above in DSD preservation)
+                        outputCodec = "flac"
+                        fileExtension = "flac"
+                        suffix = "SACD_\(tgtBits)-\(tgtSR/1000)"
+                    case .vinyl:
+                        outputCodec = "flac"
+                        fileExtension = "ogg"
+                        suffix = "LP_OGG-FLAC_\(tgtBits)-\(tgtSR/1000)"
+                    }
+                } else if isNonIPod {
+                    // Default ePod/aPlayer format
                     outputCodec = "flac"
                     fileExtension = "flac"
                 } else {
+                    // iPod mode
                     outputCodec = "alac"
                     fileExtension = "m4a"
                 }
@@ -994,6 +1060,40 @@ final class PrepViewModel: ObservableObject {
                 
                 // Map the specific stream
                 ffArgs += ["-map", "0:a:\(streamInfo.index)", "-map_metadata", "0"]
+                
+                // Add disc identity to album name if enabled
+                if addDiscIdentity, let ffprobe = ffprobePath {
+                    if let originalAlbum = getAlbumName(ffprobe: ffprobe, url: input) {
+                        let discIdentity: String
+                        
+                        // Map the profile to the user-selected disc sub-type
+                        switch profile {
+                        case .cd:
+                            discIdentity = cdSubType
+                        case .bdAudio:
+                            discIdentity = bdaSubType
+                        case .sacd:
+                            discIdentity = sacdSubType
+                        case .vinyl:
+                            discIdentity = vinylSubType
+                        }
+                        
+                        // Only add disc identity if it's not already present
+                        let identityTag = "(\(discIdentity))"
+                        let modifiedAlbum: String
+                        
+                        if originalAlbum.contains(identityTag) {
+                            // Already has this disc identity, don't duplicate
+                            modifiedAlbum = originalAlbum
+                            print("🏷️ Album already has disc identity: \"\(originalAlbum)\"")
+                        } else {
+                            modifiedAlbum = "\(originalAlbum) \(identityTag)"
+                            print("🏷️ Modified album tag: \"\(originalAlbum)\" → \"\(modifiedAlbum)\"")
+                        }
+                        
+                        ffArgs += ["-metadata", "album=\(modifiedAlbum)"]
+                    }
+                }
 
                 // DSD: add headroom and appropriate low‑pass (if converting to PCM)
                 if shouldConvertDSD {
@@ -1028,8 +1128,8 @@ final class PrepViewModel: ObservableObject {
                 // Set output codec and format
                 ffArgs += ["-ar", String(tgtSR)]
                 
-                if outputCodec == "flac" {
-                    // FLAC output
+                if outputCodec == "flac" && fileExtension == "ogg" {
+                    // OGG container with FLAC codec (for Vinyl profile)
                     ffArgs += ["-c:a", "flac"]
                     if tgtBits <= 16 {
                         ffArgs += ["-sample_fmt", "s16"]
@@ -1037,6 +1137,29 @@ final class PrepViewModel: ObservableObject {
                         ffArgs += ["-sample_fmt", "s32"]
                     }
                     ffArgs += ["-compression_level", "8"]  // Max FLAC compression
+                    ffArgs += ["-f", "ogg"]  // Force OGG container format
+                } else if outputCodec == "flac" {
+                    // Standard FLAC output
+                    ffArgs += ["-c:a", "flac"]
+                    if tgtBits <= 16 {
+                        ffArgs += ["-sample_fmt", "s16"]
+                    } else {
+                        ffArgs += ["-sample_fmt", "s32"]
+                    }
+                    ffArgs += ["-compression_level", "8"]  // Max FLAC compression
+                } else if outputCodec == "pcm_s16le" {
+                    // AIFF output (for CD profile)
+                    ffArgs += ["-c:a", "pcm_s16le"]
+                    ffArgs += ["-sample_fmt", "s16"]
+                } else if fileExtension == "mka" {
+                    // MKA container with FLAC (for BDA profile)
+                    ffArgs += ["-c:a", "flac"]
+                    if tgtBits <= 16 {
+                        ffArgs += ["-sample_fmt", "s16"]
+                    } else {
+                        ffArgs += ["-sample_fmt", "s32"]
+                    }
+                    ffArgs += ["-compression_level", "8"]
                 } else {
                     // ALAC output (iPod)
                     if tgtBits == 16 {
@@ -1046,9 +1169,12 @@ final class PrepViewModel: ObservableObject {
                     }
                 }
 
-                // Cover art (FLAC and M4A both support it)
+                // Cover art (FLAC, M4A, and MKA support it; OGG-FLAC also supports it)
                 if fileExtension == "m4a" {
                     ffArgs += ["-disposition:v:0","attached_pic"]
+                } else if fileExtension == "flac" || fileExtension == "mka" || fileExtension == "ogg" {
+                    // FLAC, MKA, and OGG-FLAC support cover art
+                    ffArgs += ["-map", "0:v?", "-c:v", "copy"]
                 }
 
                 ffArgs.append(outURL.path)
@@ -1201,8 +1327,20 @@ struct ContentView: View {
         
         let isNonIPod = vm.playerType == "aplayer" || vm.playerType == "epod"
         
-        if isNonIPod {
-            // For ePod/aPlayer: show format based on what's being converted
+        if isNonIPod && vm.convertToMatchDiscType {
+            // Show format based on disc type
+            switch vm.profile {
+            case .cd:
+                return "Convert to AIFF (CD)"
+            case .bdAudio:
+                return "Convert to MKA (BD Audio)"
+            case .sacd:
+                return "Convert to FLAC (SACD)"
+            case .vinyl:
+                return "Convert to OGG-FLAC (Vinyl)"
+            }
+        } else if isNonIPod {
+            // Default ePod/aPlayer format
             return "Convert to FLAC"
         } else {
             // For iPod: show profile with bit/sample rate
@@ -1243,6 +1381,15 @@ struct ContentView: View {
             return "DSD & Hi‑Res PCM → FLAC (Preserves Source Bit/Sample Rate)"
         } else {
             return "DSD & Hi‑Res PCM → ALAC (CD 16/44.1 • BD 16/48 • SACD 24/48)"
+        }
+    }
+    
+    // Available profiles based on vinyl support setting
+    private var availableProfiles: [OutputProfile] {
+        if vm.vinylSupport {
+            return OutputProfile.allCases
+        } else {
+            return OutputProfile.allCases.filter { $0 != .vinyl }
         }
     }
     
@@ -1486,6 +1633,8 @@ struct ContentView: View {
             switch vm.profile {
             case .cd:
                 return isDark ? "CD2" : "CD1"
+            case .vinyl:
+                return isDark ? "VINYL2" : "VINYL1"
             case .bdAudio:
                 return isDark ? "BDA2" : "BDA1"
             case .sacd:
@@ -1542,20 +1691,33 @@ struct ContentView: View {
                     
                     // Simple horizontal buttons instead of segmented control
                     HStack(spacing: 8) {
-                        ForEach(OutputProfile.allCases, id: \.self) { profile in
-                            Button(action: { vm.profile = profile }) {
-                                Text(profile.displayName(for: vm.playerType))
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(vm.profile == profile ? .white : primaryTextColor)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(vm.profile == profile ? Color.blue : (useRetroUI ? Color.gray.opacity(0.2) : Color.primary.opacity(0.1)))
-                                    )
+                        ForEach(availableProfiles, id: \.self) { profile in
+                            HStack(spacing: 4) {
+                                Button(action: { vm.profile = profile }) {
+                                    Text(profile.displayName(for: vm.playerType))
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(vm.profile == profile ? .white : primaryTextColor)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(vm.profile == profile ? Color.blue : (useRetroUI ? Color.gray.opacity(0.2) : Color.primary.opacity(0.1)))
+                                        )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .disabled(vm.preserveOriginalFile && (vm.playerType == "aplayer" || vm.playerType == "epod"))
+                                
+                                // Info button for Vinyl profile explaining OGG-FLAC
+                                if profile == .vinyl && vm.convertToMatchDiscType && (vm.playerType == "aplayer" || vm.playerType == "epod") {
+                                    Button(action: {}) {
+                                        Image(systemName: "info.circle")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.blue)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .help("Vinyl uses lossless FLAC codec in OGG container (not lossy Vorbis)")
+                                }
                             }
-                            .buttonStyle(PlainButtonStyle())
-                            .disabled(vm.preserveOriginalFile && (vm.playerType == "aplayer" || vm.playerType == "epod"))
                         }
                     }
                     .opacity((vm.preserveOriginalFile && (vm.playerType == "aplayer" || vm.playerType == "epod")) ? 0.5 : 1.0)
@@ -2021,7 +2183,7 @@ struct ContentView: View {
                             .font(.system(size: 32))
                             .foregroundColor(.gray)
                         
-                        Text("No \(PlayerType(rawValue: vm.playerType == "ipod" ? "Apple iPod" : (vm.playerType == "epod" ? "ePod" : "aPlayer (Android)"))?.rawValue ?? "Devices") Detected")
+                        Text("No \(PlayerType(rawValue: vm.playerType == "ipod" ? "iPod" : (vm.playerType == "epod" ? "ePod" : "aPlayer (Android)"))?.rawValue ?? "Devices") Detected")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.primary)
                         
@@ -2302,7 +2464,7 @@ struct ContentView: View {
                             Image(systemName: "ipod")
                                 .foregroundColor(.red)
                                 .font(.system(size: 18))
-                            Text("🎧 iPod Classic Compatibility")
+                            Text("🎧 Apple iPod (Including iPod Classic) Compatibility")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.black)
                         }

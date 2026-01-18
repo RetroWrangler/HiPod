@@ -44,6 +44,12 @@ struct SettingsView: View {
                     Label("File Handling", systemImage: "doc.on.doc")
                 }
                 .tag(2)
+            
+            DiscHandlingSettings()
+                .tabItem {
+                    Label("Disc Handling", systemImage: "opticaldisc")
+                }
+                .tag(3)
         }
         .frame(width: 600, height: 550)
     }
@@ -124,10 +130,10 @@ struct PlayerSettings: View {
             
             // Three icons horizontally
             HStack(spacing: 40) {
-                // Apple iPod
+                // iPod
                 PlayerTypeButton(
                     icon: "ipod",
-                    title: "Apple iPod",
+                    title: "iPod",
                     color: .blue,
                     isSelected: playerType == "ipod"
                 ) {
@@ -229,7 +235,7 @@ struct PlayerSettings: View {
     
     private var playerTypeTitle: String {
         switch playerType {
-        case "ipod": return "Apple iPod Classic"
+        case "ipod": return "iPod Classic"
         case "epod": return "ePod (Digital Audio Player)"
         case "aplayer": return "aPlayer (Android)"
         default: return "Unknown"
@@ -239,7 +245,7 @@ struct PlayerSettings: View {
     private var playerTypeDescription: String {
         switch playerType {
         case "ipod":
-            return "Classic iPod models with iPod_Control database structure. The app will sync files using the traditional iPod file organization system."
+            return "Apple iPod Classic models with iPod_Control database structure. The app will sync files using the traditional iPod file organization system."
         case "epod":
             return "Generic digital audio players, DAPs, and SD card readers. Simple file copying without special database management. Perfect for Hi-Res audio players."
         case "aplayer":
@@ -336,8 +342,6 @@ struct FileHandlingSettings: View {
     @AppStorage("dsd256TargetRate") private var dsd256TargetRate = 352800
     @AppStorage("dsd512TargetRate") private var dsd512TargetRate = 705600
     @AppStorage("renameFiles") private var renameFiles = true  // Track number + metadata naming
-    @AppStorage("addDiscIdentity") private var addDiscIdentity = true  // Add disc type to album tags
-    @AppStorage("discType") private var discType = "CD"  // Selected disc type
     @State private var showingPCMInfo = false
     
     private var isNonIPod: Bool {
@@ -527,99 +531,6 @@ struct FileHandlingSettings: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.indigo.opacity(0.3), lineWidth: 1)
-                            )
-                    )
-                    
-                    Divider()
-                        .padding(.vertical, 8)
-                    
-                    // Disc Identity Option
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle(isOn: $addDiscIdentity) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "opticaldisc")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.pink)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Add Disc Identity to Album Tags")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(.primary)
-                                    
-                                    Text("Append disc type to album name in metadata")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .toggleStyle(SwitchToggleStyle())
-                        
-                        if addDiscIdentity {
-                            VStack(alignment: .leading, spacing: 12) {
-                                // Disc Type Picker
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Select Disc Type:")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.primary)
-                                        .padding(.leading, 26)
-                                    
-                                    Picker("Disc Type", selection: $discType) {
-                                        Text("CD").tag("CD")
-                                        Text("SACD").tag("SACD")
-                                        Text("DVD Audio").tag("DVD Audio")
-                                        Text("BD Audio").tag("BD Audio")
-                                        Text("Vinyl").tag("Vinyl")
-                                        Text("DSD").tag("DSD")
-                                        Text("Hi-Res").tag("Hi-Res")
-                                        Text("Remaster").tag("Remaster")
-                                        Text("Deluxe Edition").tag("Deluxe Edition")
-                                    }
-                                    .pickerStyle(MenuPickerStyle())
-                                    .frame(width: 200)
-                                    .padding(.leading, 26)
-                                }
-                                
-                                Divider()
-                                    .padding(.leading, 26)
-                                
-                                // Preview
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Preview:")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                        .padding(.leading, 26)
-                                    
-                                    HStack(spacing: 8) {
-                                        Text("'Fleetwood Mac'")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.secondary)
-                                        
-                                        Image(systemName: "arrow.right")
-                                            .font(.system(size: 9))
-                                            .foregroundColor(.pink)
-                                        
-                                        Text("'Fleetwood Mac (\(discType))'")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundColor(.pink)
-                                    }
-                                    .padding(.leading, 32)
-                                }
-                            }
-                        } else {
-                            Text("Album names will remain unchanged in metadata")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 26)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.pink.opacity(0.05))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.pink.opacity(0.3), lineWidth: 1)
                             )
                     )
                     
@@ -1201,6 +1112,624 @@ struct PCMInfoSheet: View {
                         .stroke(color.opacity(0.2), lineWidth: 1)
                 )
         )
+    }
+}
+
+// MARK: - Disc Handling Settings
+
+struct DiscHandlingSettings: View {
+    @AppStorage("addDiscIdentity") private var addDiscIdentity = false
+    @AppStorage("vinylSupport") private var vinylSupport = false
+    @AppStorage("convertToMatchDiscType") private var convertToMatchDiscType = false
+    @AppStorage("playerType") private var playerType = "ipod"
+    
+    // Disc sub-type selections
+    @AppStorage("cdSubType") private var cdSubType = "CD"
+    @AppStorage("sacDSubType") private var sacdSubType = "SACD"
+    @AppStorage("vinylSubType") private var vinylSubType = "LP"
+    @AppStorage("bdaSubType") private var bdaSubType = "BDA"
+    
+    private var isNonIPod: Bool {
+        playerType == "aplayer" || playerType == "epod"
+    }
+    
+    // Sub-type options
+    private let cdSubTypes = ["CD", "HDCD", "SHMCD", "UHQCD"]
+    private let sacdSubTypes = ["SACD", "SACD+", "DSD-Digital"]
+    private let vinylSubTypes = ["LP", "EP", "Vinyl Rip", "Single"]
+    private let bdaSubTypes = ["BDA", "Blu-Ray Audio", "Custom Blu-Ray", "Blu-Ray Rip"]
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Title
+            Text("Disc Handling")
+                .font(.system(size: 20, weight: .bold))
+                .padding(.top, 20)
+                .padding(.bottom, 8)
+            
+            Text("Configure disc-related features and metadata")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .padding(.bottom, 24)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Vinyl Support Setting
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $vinylSupport) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "circle.circle")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.orange)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Enable Vinyl/LP Support")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text("Add vinyl as an output profile option")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .toggleStyle(SwitchToggleStyle())
+                        
+                        if vinylSupport {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Vinyl profile adds 'LP' as an output option on the main screen.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .padding(.leading, 26)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "circle.circle.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.orange)
+                                        Text("Vinyl Specifications:")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundColor(.primary)
+                                    }
+                                    .padding(.leading, 26)
+                                    
+                                    Text("• iPod Mode: 24-bit / 44.1 kHz (ALAC)")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 42)
+                                    
+                                    Text("• ePod/aPlayer Mode: Preserves source quality")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 42)
+                                }
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.orange)
+                                    Text("Vinyl rips typically use 24-bit depth to capture the full dynamic range. 44.1 kHz matches most vinyl digitization standards.")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.leading, 26)
+                            }
+                            .padding(.top, 4)
+                        } else {
+                            Text("Vinyl/LP profile is disabled. Only CD, BD Audio, and SACD profiles will be available.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 26)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.orange.opacity(0.05))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    // Disc Identity Setting
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $addDiscIdentity) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "tag.circle")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.pink)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Add Disc Identity to Album Tags")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text("Append disc type to album name in metadata")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .toggleStyle(SwitchToggleStyle())
+                        
+                        if addDiscIdentity {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("When enabled, the output profile type will be appended to the album name in parentheses.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .padding(.leading, 26)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                Text("Examples:")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                    .padding(.leading, 26)
+                                
+                                HStack(alignment: .top, spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "opticaldisc")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.blue)
+                                            Text("CD Profile:")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.blue)
+                                        }
+                                        Text("\"Rumours\" → \"Rumours (CD)\"")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                            .padding(.leading, 16)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "opticaldiscdrive")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.green)
+                                            Text("BD Audio Profile:")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.green)
+                                        }
+                                        Text("\"Kind of Blue\" → \"Kind of Blue (BDA)\"")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                            .padding(.leading, 16)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .padding(.leading, 26)
+                                
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "laser.burst")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.purple)
+                                        Text("SACD Profile:")
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundColor(.purple)
+                                    }
+                                    Text("\"Dark Side of the Moon\" → \"Dark Side of the Moon (SACD)\"")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 16)
+                                }
+                                .padding(.leading, 26)
+                                
+                                if vinylSupport {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "circle.circle")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.orange)
+                                            Text("Vinyl Profile:")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.orange)
+                                        }
+                                        Text("\"Abbey Road\" → \"Abbey Road (LP)\"")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                            .padding(.leading, 16)
+                                    }
+                                    .padding(.leading, 26)
+                                }
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.pink)
+                                    Text("This helps you identify the source quality on your player when you have multiple versions of the same album.")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.leading, 26)
+                            }
+                            .padding(.top, 4)
+                        } else {
+                            Text("Album names in metadata will remain unchanged from the source files.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 26)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.pink.opacity(0.05))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.pink.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    
+                    // Disc Sub-Type Selector (only shown if disc identity is enabled)
+                    if addDiscIdentity {
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "list.bullet.circle")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.cyan)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Disc Sub-Types")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text("Customize the disc identity tag for each profile")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 16) {
+                                // CD Sub-Type
+                                HStack {
+                                    Image(systemName: "opticaldisc")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.blue)
+                                        .frame(width: 24)
+                                    
+                                    Text("CD Profile:")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .frame(width: 120, alignment: .leading)
+                                    
+                                    Picker("", selection: $cdSubType) {
+                                        ForEach(cdSubTypes, id: \.self) { type in
+                                            Text(type).tag(type)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                    .frame(width: 150)
+                                    
+                                    Text("Example: \"Album (\(cdSubType))\"")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                // Vinyl Sub-Type (only if vinyl support is enabled)
+                                if vinylSupport {
+                                    HStack {
+                                        Image(systemName: "circle.circle")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.orange)
+                                            .frame(width: 24)
+                                        
+                                        Text("Vinyl Profile:")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 120, alignment: .leading)
+                                        
+                                        Picker("", selection: $vinylSubType) {
+                                            ForEach(vinylSubTypes, id: \.self) { type in
+                                                Text(type).tag(type)
+                                            }
+                                        }
+                                        .pickerStyle(MenuPickerStyle())
+                                        .frame(width: 150)
+                                        
+                                        Text("Example: \"Album (\(vinylSubType))\"")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                // BD Audio Sub-Type
+                                HStack {
+                                    Image(systemName: "opticaldiscdrive")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.green)
+                                        .frame(width: 24)
+                                    
+                                    Text("BD Audio Profile:")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .frame(width: 120, alignment: .leading)
+                                    
+                                    Picker("", selection: $bdaSubType) {
+                                        ForEach(bdaSubTypes, id: \.self) { type in
+                                            Text(type).tag(type)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                    .frame(width: 150)
+                                    
+                                    Text("Example: \"Album (\(bdaSubType))\"")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                // SACD Sub-Type
+                                HStack {
+                                    Image(systemName: "laser.burst")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.purple)
+                                        .frame(width: 24)
+                                    
+                                    Text("SACD Profile:")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .frame(width: 120, alignment: .leading)
+                                    
+                                    Picker("", selection: $sacdSubType) {
+                                        ForEach(sacdSubTypes, id: \.self) { type in
+                                            Text(type).tag(type)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                    .frame(width: 150)
+                                    
+                                    Text("Example: \"Album (\(sacdSubType))\"")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.leading, 26)
+                            
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.cyan)
+                                Text("These sub-types allow you to distinguish between different disc editions and formats. The selected sub-type will be used in the album metadata tag.")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.leading, 26)
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.cyan.opacity(0.05))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    // Convert to Match Disc Type Setting
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $convertToMatchDiscType) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.triangle.swap")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.teal)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Convert File to Match Disc Type")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text("Output format matches the selected disc profile")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .toggleStyle(SwitchToggleStyle())
+                        .disabled(!isNonIPod)
+                        
+                        if !isNonIPod {
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundColor(.blue)
+                                Text("This setting is only available for aPlayer and ePod modes. iPod mode always uses ALAC format.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.blue)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.leading, 26)
+                        } else if convertToMatchDiscType {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Output files will be converted to format-specific containers based on the selected profile:")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .padding(.leading, 26)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "opticaldisc")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.blue)
+                                            .frame(width: 20)
+                                        Text("CD → AIFF")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 150, alignment: .leading)
+                                        Text("16-bit PCM in AIFF container")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "opticaldiscdrive")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.green)
+                                            .frame(width: 20)
+                                        Text("BD Audio → MKA")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 150, alignment: .leading)
+                                        Text("FLAC in Matroska container")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "laser.burst")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.purple)
+                                            .frame(width: 20)
+                                        Text("SACD → FLAC/DSF")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 150, alignment: .leading)
+                                        Text("FLAC for PCM, DSF preserved for DSD")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    if vinylSupport {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "circle.circle")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.orange)
+                                                .frame(width: 20)
+                                            HStack(spacing: 4) {
+                                                Text("Vinyl → OGG-FLAC")
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.primary)
+                                                    .frame(width: 150, alignment: .leading)
+                                                Button(action: {}) {
+                                                    Image(systemName: "info.circle")
+                                                        .font(.system(size: 10))
+                                                        .foregroundColor(.orange)
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
+                                                .help("Lossless FLAC codec in OGG container (not lossy Vorbis)")
+                                            }
+                                            Text("Lossless FLAC in OGG container")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                                .padding(.leading, 26)
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.teal)
+                                    Text("All formats remain lossless. This feature helps organize your library by using industry-standard containers for each disc type.")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.leading, 26)
+                            }
+                            .padding(.top, 4)
+                        } else {
+                            Text("All files will be converted to FLAC format regardless of disc type.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 26)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.teal.opacity(0.05))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.teal.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    .opacity(!isNonIPod ? 0.5 : 1.0)
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    // Info panel about metadata preservation
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.blue)
+                            
+                            Text("Metadata Preservation")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.primary)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            metadataInfoRow(icon: "music.note", text: "Track titles, artists, and album information are preserved", color: .blue)
+                            metadataInfoRow(icon: "photo", text: "Embedded album artwork is retained in output files", color: .blue)
+                            metadataInfoRow(icon: "number", text: "Track numbers and disc numbers are maintained", color: .blue)
+                            metadataInfoRow(icon: "calendar", text: "Release dates and genres are carried over", color: .blue)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.blue.opacity(0.05))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                }
+                .padding(20)
+            }
+        }
+    }
+    
+    private func metadataInfoRow(icon: String, text: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundColor(color)
+                .frame(width: 16)
+            Text(text)
+                .font(.system(size: 12))
+                .foregroundColor(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
