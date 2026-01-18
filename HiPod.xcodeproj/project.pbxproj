@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		4D7B6342FD244B75982FEC942C4F427E /* ffmpeg in Resources */ = {isa = PBXBuildFile; fileRef = 68CCCEE74BF648E0BBC571A5EB4398A9 /* ffmpeg */; };
+		8B927D6B2F1CF38900EF42D8 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 8B927D6A2F1CF38900EF42D8 /* README.md */; };
+		8B927D6D2F1CF38B00EF42D8 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 8B927D6C2F1CF38B00EF42D8 /* .gitignore */; };
+		8B927D6F2F1CF38E00EF42D8 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 8B927D6E2F1CF38E00EF42D8 /* LICENSE */; };
 		8BA30A752EA9255F00E7EC79 /* HiPodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA30A742EA9255F00E7EC79 /* HiPodApp.swift */; };
 		8BA30A772EA9255F00E7EC79 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA30A762EA9255F00E7EC79 /* ContentView.swift */; };
 		8BA30A792EA9256000E7EC79 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BA30A782EA9256000E7EC79 /* Assets.xcassets */; };
@@ -37,6 +40,9 @@
 
 /* Begin PBXFileReference section */
 		68CCCEE74BF648E0BBC571A5EB4398A9 /* ffmpeg */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = ffmpeg; sourceTree = "<group>"; };
+		8B927D6A2F1CF38900EF42D8 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		8B927D6C2F1CF38B00EF42D8 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		8B927D6E2F1CF38E00EF42D8 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		8BA30A712EA9255F00E7EC79 /* HiPod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HiPod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8BA30A742EA9255F00E7EC79 /* HiPodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiPodApp.swift; sourceTree = "<group>"; };
 		8BA30A762EA9255F00E7EC79 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -49,7 +55,6 @@
 		8BA30A902EA9256100E7EC79 /* HiPodUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiPodUITests.swift; sourceTree = "<group>"; };
 		8BA30A922EA9256100E7EC79 /* HiPodUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiPodUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		EB0AC76F6E20440EB4519AC3902E1F2A /* ffprobe */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = ffprobe; sourceTree = "<group>"; };
-		FEBCB049FE6F41B48A9FD82BAEA5D21C /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,17 +111,11 @@
 				8BA30A7A2EA9256000E7EC79 /* HiPod.entitlements */,
 				8BA30A7B2EA9256000E7EC79 /* Preview Content */,
 				FEBCB049FE6F41B48A9FD82BAEA5D21C /* Resources */,
+				8B927D6A2F1CF38900EF42D8 /* README.md */,
+				8B927D6C2F1CF38B00EF42D8 /* .gitignore */,
+				8B927D6E2F1CF38E00EF42D8 /* LICENSE */,
 			);
 			path = HiPod;
-			sourceTree = "<group>";
-		};
-		FEBCB049FE6F41B48A9FD82BAEA5D21C /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				68CCCEE74BF648E0BBC571A5EB4398A9 /* ffmpeg */,
-				EB0AC76F6E20440EB4519AC3902E1F2A /* ffprobe */,
-			);
-			path = Resources;
 			sourceTree = "<group>";
 		};
 		8BA30A7B2EA9256000E7EC79 /* Preview Content */ = {
@@ -142,6 +141,15 @@
 				8BA30A922EA9256100E7EC79 /* HiPodUITestsLaunchTests.swift */,
 			);
 			path = HiPodUITests;
+			sourceTree = "<group>";
+		};
+		FEBCB049FE6F41B48A9FD82BAEA5D21C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				68CCCEE74BF648E0BBC571A5EB4398A9 /* ffmpeg */,
+				EB0AC76F6E20440EB4519AC3902E1F2A /* ffprobe */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -250,7 +258,10 @@
 			files = (
 				8BA30A7D2EA9256000E7EC79 /* Preview Assets.xcassets in Resources */,
 				8BA30A792EA9256000E7EC79 /* Assets.xcassets in Resources */,
+				8B927D6B2F1CF38900EF42D8 /* README.md in Resources */,
+				8B927D6F2F1CF38E00EF42D8 /* LICENSE in Resources */,
 				4D7B6342FD244B75982FEC942C4F427E /* ffmpeg in Resources */,
+				8B927D6D2F1CF38B00EF42D8 /* .gitignore in Resources */,
 				CE615706116B45A5A2C5CAA8C7ACCB0D /* ffprobe in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
