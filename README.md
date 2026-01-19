@@ -1,591 +1,383 @@
-# 🎵 HiPod – The Ultimate Hi-Res Audio Sync & iPod Utility
+<div align="center">
 
-> **DSD & Hi‑Res PCM → ALAC for iPod Classic, DAPs, and Android**
+# 🎵 HiPod
+
+### The Ultimate Hi-Res Audio Converter & iPod Sync Utility
+
+*Convert DSD & Hi-Res PCM to lossless formats for iPod Classic, Digital Audio Players, and Android*
+
+[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](https://www.apple.com/macos/)
+[![Swift](https://img.shields.io/badge/Swift-5.5+-orange.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Xcode](https://img.shields.io/badge/Xcode-15+-blue.svg)](https://developer.apple.com/xcode/)
 
 ![HiPod Icon](.github/hipod-banner.png)
 
----
+[Features](#-features) • [Supported Devices](#-supported-devices) • [Output Profiles](#%EF%B8%8F-output-profiles) • [Installation](#-installation) • [Usage](#-usage) • [Technical Details](#-technical-details)
 
-## 🚀 Features at a Glance
-
-- **Universal Player Support:**
-  - iPod Classic (full database sync, iPod_Control structure)
-  - Modern Hi-Res DAPs/ePods (SD/USB storage, FiiO, Sony, Astell&Kern, HiBy, and more)
-  - Android-based players (‘aPlayer’ mode, direct to Music folder)
-- **Lossless Conversion Engine:**
-  - Input: AIFF, WAV, FLAC, DSF (DSD64/128/256/512), MKA (multi-stream)
-  - Output: ALAC (.m4a), FLAC, OGG-FLAC, AIFF (per profile and device)
-  - DSD→PCM conversion with -3 dB headroom & high-quality filtering
-- **Advanced Profiles:**
-  - CD (16/44.1), BD AUDIO (16/48), SACD/DSD (24/48), Vinyl/LP (24/44.1, optional)
-  - Automatic compatibility warnings for iPod Classic
-- **Multi-Stream MKA Handling:**
-  - Choose and extract all or specific streams from Matroska audio files
-- **Metadata Magic:**
-  - Preserve album art, track titles, artists, and all tags
-  - Disc identity tagging: append edition/profile to album name
-- **Retro iTunes-Inspired UI:**
-  - Toggle classic brushed metal and gradients for the full nostalgia trip
-- **Smart Sync:**
-  - Device detection and tailored file organization
-  - Updates iPod iTunesDB; builds folder hierarchies (F00–F49)
-- **Audiophile Options:**
-  - Gain adjustment (±20 dB), downmix, track numbering, format-based renaming
-  - Configure DSD conversion rates and preservation per device
-- **No Lossy Codecs, Ever:**
-  - Only lossless ALAC/FLAC/AIFF. App warns clearly about any quality‑reducing operation.
+</div>
 
 ---
 
-## 🎧 Supported Devices & Modes
+## ✨ Features
 
-| Mode         | Features                                                      | Output Formats              |
-|--------------|---------------------------------------------------------------|-----------------------------|
-| **iPod**     | Classic, Video, Photo – iPod_Control sync, iTunesDB update    | ALAC (.m4a)                 |
-| **ePod**     | Hi-Res DAPs, SD/USB, file copy to Music/root, preserves PCM   | FLAC, AIFF, OGG-FLAC, DSF   |
-| **aPlayer**  | Android, Music folder, preserves filenames, no drivers needed | FLAC, AIFF, OGG-FLAC, DSF   |
+### 🎧 Universal Player Support
+- **iPod Classic/Video/Photo** – Full database sync with iPod_Control structure
+- **Modern Hi-Res DAPs** – FiiO, Sony, Astell&Kern, HiBy, and more
+- **Android Players** – Direct sync to Music folder, no drivers needed
 
+### 🔄 Lossless Conversion Engine
+- **Input Formats:** AIFF, WAV, FLAC, DSF (DSD64/128/256/512), MKA (multi-stream)
+- **Output Formats:** ALAC (.m4a), FLAC, OGG-FLAC, AIFF, DSF
+- **DSD→PCM Conversion:** High-quality filtering with -3 dB headroom
+- **Multi-Stream MKA:** Extract one or all audio streams from Matroska files
+
+### 🎚️ Advanced Audio Processing
+- **Sample Rate Conversion:** SoXR resampler with 33-bit precision
+- **Bit Depth Control:** TPDF dithering for 16-bit reduction
+- **Gain Adjustment:** ±20 dB with real-time preview
+- **Channel Downmix:** Automatic stereo conversion from surround
+
+### 🎨 Classic iTunes-Inspired UI
+- **Retro Mode:** Brushed metal gradients and classic styling
+- **Modern Mode:** Adaptive light/dark appearance
+- **Intuitive Workflow:** Drag-and-drop file selection with live warnings
+
+### 📊 Smart Metadata Handling
+- **Preserve Everything:** Album art, track titles, artists, all tags
+- **Disc Identity Tagging:** Optional profile/edition labels (e.g., "Album (SACD)")
+- **Custom Sub-Types:** HDCD, SHMCD, UHQCD, SACD+, and more
+
+### 🔍 Quality Transparency
+- **No Lossy Codecs:** Only ALAC, FLAC, and AIFF outputs
+- **Clear Warnings:** Real-time alerts for any quality-reducing operations
+- **Compatibility Checker:** iPod Classic format compatibility validation
 
 ---
 
-## 🎚️ Output Profiles (User-Selectable)
+## 🎧 Supported Devices
 
-- **CD:** 16‑bit / 44.1 kHz (ALAC) — _Maximum iPod compatibility_
-- **BD AUDIO:** 16‑bit / 48 kHz (ALAC) — _May not play on all iPods_
-- **SACD/DSD:** 24‑bit / 48 kHz (ALAC) — _High-res, not guaranteed on iPod Classic_
-- **VINYL/LP:** 24‑bit / 44.1 kHz (optional) — _Capture vinyl rips in full depth_
-
-All conversions use mathematically lossless codecs. The app always surfaces any resampling, bit-depth reduction, or DSD→PCM conversion steps!
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Device Types</th>
+<th>Output Formats</th>
+<th>Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>iPod</strong></td>
+<td>Classic, Video, Photo</td>
+<td>ALAC (.m4a)</td>
+<td>
+• Full iPod_Control sync<br>
+• iTunesDB update<br>
+• F00-F49 folder structure<br>
+• Album art support
+</td>
+</tr>
+<tr>
+<td><strong>ePod</strong></td>
+<td>FiiO, Sony, A&K, HiBy, etc.</td>
+<td>FLAC, AIFF, DSF, OGG-FLAC</td>
+<td>
+• SD/USB storage support<br>
+• Hi-Res preservation<br>
+• Native DSD support<br>
+• Simple file copy
+</td>
+</tr>
+<tr>
+<td><strong>aPlayer</strong></td>
+<td>Android devices</td>
+<td>FLAC, AIFF, DSF, OGG-FLAC</td>
+<td>
+• Music folder sync<br>
+• Filename preservation<br>
+• No drivers required<br>
+• MTP compatibility
+</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
-## 📦 Installation
+## 🎛️ Output Profiles
+
+Choose from four carefully calibrated output profiles:
+
+| Profile | Spec | Format | iPod Compatibility | Best For |
+|---------|------|--------|-------------------|----------|
+| **CD** | 16-bit / 44.1 kHz | ALAC | ✅ Guaranteed | Maximum compatibility |
+| **BD Audio** | 16-bit / 48 kHz | ALAC | ⚠️ Possible | Blu-ray audio rips |
+| **SACD/DSD** | 24-bit / 48 kHz | ALAC | ❌ Unlikely | DSD/SACD conversions |
+| **Vinyl** | 24-bit / 44.1 kHz | ALAC | ⚠️ Possible | Vinyl digitization |
+
+> **Note:** All profiles use mathematically lossless codecs. Warnings are shown for any sample rate or bit depth changes.
+
+---
+
+## 📥 Installation
 
 ### Requirements
-- **macOS 14.0+** (Sonoma or later recommended)
+- **macOS 14.0+** (Sonoma or later)
 - **Xcode 15.0+** (for building from source)
-- **FFmpeg** (bundled with app, or install via Homebrew)
+- **FFmpeg** (bundled with app, or system installation via Homebrew)
 
-### Build from Source
+### Option 1: Download Release (Coming Soon)
 ```bash
-# 1. Clone the repository
-$ git clone https://github.com/yourusername/hipod.git
-$ cd hipod
-
-# 2. Open in Xcode
-$ open HiPod.xcodeproj
-
-# 3. Build and Run (⌘R)
+# Download the latest .dmg from Releases
+# Drag HiPod.app to Applications folder
 ```
 
-### FFmpeg Setup
-HiPod includes bundled FFmpeg binaries for convenience. If you prefer to use system FFmpeg:
+### Option 2: Build from Source
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/hipod.git
+cd hipod
+
+# Open in Xcode
+open HiPod.xcodeproj
+
+# Build and run (⌘R)
+```
+
+### FFmpeg Installation
+HiPod includes bundled FFmpeg binaries. If you prefer system FFmpeg:
+
 ```bash
 # Install via Homebrew
-$ brew install ffmpeg
+brew install ffmpeg
 
-# HiPod will auto-detect FFmpeg at:
-# • /opt/homebrew/bin/ffmpeg (Apple Silicon)
-# • /usr/local/bin/ffmpeg (Intel Mac)
-# • Bundled binaries (fallback)
+# HiPod will auto-detect at:
+# /opt/homebrew/bin/ffmpeg
+# /usr/local/bin/ffmpeg
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Usage
 
-### 1. Configure Player Type
-- Open **HiPod** → **Settings** (⌘,)
-- Navigate to **Player Type** tab
-- Select your target device:
-  - **iPod** – For iPod Classic, Video, or Photo
-  - **ePod** – For Hi-Res DAPs (FiiO, Sony, A&K, etc.)
-  - **aPlayer** – For Android-based music players
+### Quick Start
 
-### 2. Select Output Profile
-In the main window, choose your desired output profile:
-- **CD (16/44.1)** – Maximum iPod compatibility ✅
-- **BD Audio (16/48)** – Blu-ray audio quality ⚠️
-- **SACD/DSD (24/48)** – High-res conversion ❌
-- **Vinyl (24/44.1)** – For vinyl rips (optional)
+1. **Select Player Type**
+   - Go to **Settings** → **Player Type**
+   - Choose: iPod, ePod, or aPlayer
 
-> **Note:** Profile selection is disabled when "Preserve Original Files" is enabled for ePod/aPlayer modes.
+2. **Choose Output Profile**
+   - Main window: Select CD, BD Audio, SACD, or Vinyl
+   - Profile is disabled when "Preserve Original Files" is enabled
 
-### 3. Add Your Audio Files
-- Click **Choose Files…** or drag and drop
-- Supported formats: AIFF, WAV, FLAC, DSF, MKA
-- Files are automatically analyzed for format and quality
+3. **Add Files**
+   - Click **Choose Files…** or drag & drop
+   - Supports: AIFF, WAV, FLAC, DSF, MKA
 
-### 4. Review Warnings
-HiPod provides transparent warnings for any quality-affecting operations:
-- DSD→PCM conversion details
-- Sample rate changes
-- Bit depth reduction
-- Channel downmixing
+4. **Convert**
+   - Review warnings for quality-reducing operations
+   - Click **Convert to [Profile] ALAC**
+   - Files appear in `~/Music/HiRes-iPod-[timestamp]`
 
-### 5. Convert
-- Click **Convert to [Profile] ALAC** (or **Copy Original Files** if preserving)
-- Progress shown for each file
-- Output folder: `~/Music/HiRes-iPod-[timestamp]`
-- Click **Show in Finder** to view results
+5. **Sync to Device**
+   - Connect your iPod/DAP/Android device
+   - Click **Scan for [Devices]**
+   - Select device and click **Sync**
 
-### 6. Sync to Device
-- Connect your iPod/DAP/Android player
-- Click **Scan for [Devices]**
-- Select your device from the dropdown
-- Review sync info (capacity, library count)
-- Click **Sync to [Device]**
+### Advanced Features
 
----
+#### Multi-Stream MKA Extraction
+For MKA files with multiple audio streams:
+- Each stream appears as a checkbox option
+- Select one or all streams to extract
+- Streams are organized by type with sequential track numbers
 
-## ⚙️ Advanced Features
+#### DSD Conversion Settings
+Configure target sample rates for DSD→PCM conversion:
+- **DSD64 (2.8 MHz)** → 88.2, 176.4, or 352.8 kHz
+- **DSD128 (5.6 MHz)** → 176.4 or 352.8 kHz
+- **DSD256 (11.2 MHz)** → 352.8 or 705.6 kHz
+- **DSD512 (22.5 MHz)** → 705.6 kHz
 
-### Multi-Stream MKA Extraction
-For Matroska audio files containing multiple streams:
+*(iPod mode always converts to 24/48 kHz for compatibility)*
 
-- **Automatic Detection:** All audio streams are detected and listed
-- **Selective Extraction:** Choose which streams to extract (checkboxes)
-- **Stream Information:** Codec, sample rate, bit depth, channels shown
-- **Organized Output:** Streams grouped by type with sequential track numbering
-- **Common Formats:** DTS-HD MA, TrueHD, Dolby Atmos, FLAC, PCM
+#### Disc Identity Tagging
+Enable in **Settings** → **Disc Handling**:
+- Appends profile to album name
+- Example: "Dark Side of the Moon" → "Dark Side of the Moon (SACD)"
+- Customize sub-types: HDCD, SHMCD, SACD+, DSD-Digital, etc.
 
-**Example Workflow:**
-1. Add MKA file with 3 streams (DTS 5.1, DTS 2.0, Commentary)
-2. Select desired streams via checkboxes
-3. Convert – each stream becomes a separate output file
-4. Files named: `01 - Title - DTS 5.1_format.m4a`, `02 - Title - DTS 2.0_format.m4a`
-
-### DSD Conversion Settings
-Fine-tune DSD→PCM conversion target sample rates in **Settings** → **File Handling**:
-
-| DSD Type | Native Rate | Recommended PCM | Options |
-|----------|-------------|-----------------|---------|
-| **DSD64** | 2.8 MHz | 88.2 kHz | 88.2, 176.4, 352.8 kHz |
-| **DSD128** | 5.6 MHz | 176.4 kHz | 176.4, 352.8 kHz |
-| **DSD256** | 11.2 MHz | 352.8 kHz | 352.8, 705.6 kHz |
-| **DSD512** | 22.5 MHz | 705.6 kHz | 705.6 kHz |
-
-> **iPod Mode Override:** All DSD conversions use 24-bit/48 kHz for maximum compatibility.
-
-**Processing Details:**
-- **Headroom:** -3 dB applied to prevent clipping
-- **Low-Pass Filter:** Ultrasonic filtering (adaptive 20-22 kHz)
-- **Resampler:** SoXR with 33-bit precision
-- **Bit Depth:** Always 24-bit PCM output
-
-### Disc Identity Tagging
-Add disc type information to album metadata:
-
-**Enable in Settings → Disc Handling:**
-1. Toggle "Add Disc Identity to Album Tags"
-2. Customize sub-types for each profile:
-   - **CD:** CD, HDCD, SHMCD, UHQCD
-   - **SACD:** SACD, SACD+, DSD-Digital
-   - **Vinyl:** LP, EP, Vinyl Rip, Single
-   - **BD Audio:** BDA, Blu-Ray Audio, Custom Blu-Ray
-
-**Examples:**
-- Input: `"Dark Side of the Moon"`
-- Output: `"Dark Side of the Moon (SACD)"`
-
-**Benefits:**
-- Easily identify source quality on your player
-- Organize multiple versions of the same album
-- Preserve edition information
-
-### Preserve Original Files (ePod/aPlayer Only)
-For devices with native DSD/Hi-Res support:
-
-**Enable in Settings → File Handling:**
-- Files copied without conversion
-- Original format, bit depth, and sample rate maintained
-- Useful for DSD-capable DAPs
+#### Preserve Original Files (ePod/aPlayer)
+For native DSD support on compatible devices:
+- Enable in **Settings** → **File Handling**
+- Copies files without conversion
 - Output profile selection disabled
-- Fast copy operation
-
-### Gain Adjustment
-Apply volume adjustment to all conversions:
-
-- **Range:** ±20 dB
-- **Precision:** 0.5 dB steps
-- **Applied After:** DSD headroom (if applicable)
-- **Use Case:** Normalize quiet recordings or reduce hot masters
-
-> **Warning:** Positive gain > +10 dB may cause clipping on loud tracks.
-
-### Format Matching (ePod/aPlayer)
-Enable "Convert File to Match Disc Type" for format-specific containers:
-
-| Profile | Output Format | Container | Notes |
-|---------|---------------|-----------|-------|
-| **CD** | PCM 16-bit | AIFF | CD-quality lossless |
-| **BD Audio** | FLAC | MKA (Matroska) | Blu-ray standard |
-| **SACD** | FLAC/DSF | FLAC or DSF | DSD preserved if possible |
-| **Vinyl** | FLAC | OGG container | Lossless FLAC in OGG |
 
 ---
 
 ## 🛠️ Technical Details
 
-### Audio Processing Pipeline
+### Conversion Pipeline
 
 ```
-┌─────────────────────┐
-│   Input File        │
-│ (FLAC/DSF/WAV/MKA) │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  FFprobe Analysis   │
-│  • Format detection │
-│  • Stream analysis  │
-│  • Metadata reading │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Quality Warnings   │
-│  • Sample rate      │
-│  • Bit depth        │
-│  • DSD conversion   │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  FFmpeg Processing  │
-│  ├─ DSD: -3dB + LP  │
-│  ├─ Resample: SoXR  │
-│  ├─ Dither: TPDF    │
-│  ├─ Downmix: Stereo │
-│  └─ Gain: User adj  │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Metadata Embedding  │
-│  • Album art        │
-│  • Track info       │
-│  • Disc identity    │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│   Output File       │
-│ (ALAC/FLAC/DSF)     │
-└─────────────────────┘
+Input File (FLAC/DSF/MKA)
+    ↓
+FFprobe Analysis
+    ↓
+Format Detection & Warnings
+    ↓
+FFmpeg Conversion
+    • DSD: -3dB headroom + low-pass filter
+    • Resample: SoXR 33-bit precision
+    • Bit Depth: TPDF dithering (if reducing)
+    • Channels: Stereo downmix (if >2)
+    • Gain: User adjustment applied
+    ↓
+Metadata Embedding
+    • Album art
+    • Track info
+    • Disc identity (optional)
+    ↓
+Output (ALAC/FLAC/DSF)
 ```
 
-### Supported Formats
-
-**Input Formats:**
-- **AIFF/AIF** – Apple Interchange File Format (PCM)
-- **WAV** – Waveform Audio File Format (PCM)
-- **FLAC** – Free Lossless Audio Codec
-- **DSF** – DSD Stream File (1-bit DSD)
-- **MKA** – Matroska Audio Container (any codec)
-
-**Output Formats:**
-- **ALAC** – Apple Lossless Audio Codec (.m4a) [iPod mode]
-- **FLAC** – Free Lossless Audio Codec [ePod/aPlayer]
-- **AIFF** – PCM in AIFF container [CD profile, ePod/aPlayer]
-- **OGG-FLAC** – Lossless FLAC in OGG container [Vinyl profile]
-- **DSF** – DSD preserved [ePod/aPlayer with preserve mode]
-
-### Sample Rate Support
-
-**Input (PCM):**
-- Standard: 44.1, 48 kHz
-- High-Res: 88.2, 96, 176.4, 192 kHz
-- Ultra High-Res: 352.8, 384, 705.6 kHz
-
-**Input (DSD):**
-- DSD64: 2.8 MHz (2,822,400 Hz)
-- DSD128: 5.6 MHz (5,644,800 Hz)
-- DSD256: 11.2 MHz (11,289,600 Hz)
-- DSD512: 22.5 MHz (22,579,200 Hz)
-
-**Output:**
-- Configurable based on profile and settings
-- iPod mode: 44.1 or 48 kHz
-- ePod/aPlayer: Preserves source or custom target
+### Supported Sample Rates
+- **Input:** 44.1, 48, 88.2, 96, 176.4, 192, 352.8, 384, 705.6 kHz (PCM)
+- **Input:** 2.8, 5.6, 11.2, 22.5 MHz (DSD)
+- **Output:** 44.1, 48, 88.2, 176.4, 352.8, 705.6 kHz (profile-dependent)
 
 ### File Organization
 
-**iPod Mode:**
+#### iPod Mode
 ```
-[iPod Volume]/
-└── iPod_Control/
-    ├── Music/
-    │   ├── F00/
-    │   │   ├── ABCD.m4a
-    │   │   └── EFGH.m4a
-    │   ├── F01/
-    │   │   └── IJKL.m4a
-    │   ⋮
-    │   └── F49/
-    └── iTunes/
-        ├── iTunesDB      # Database file
-        └── LastSync.txt  # Sync timestamp
+iPod_Control/
+├── Music/
+│   ├── F00/
+│   │   └── ABCD.m4a
+│   ├── F01/
+│   │   └── EFGH.m4a
+│   └── ...
+└── iTunes/
+    └── iTunesDB
 ```
 
-**ePod/aPlayer Mode:**
+#### ePod/aPlayer Mode
 ```
-[Device Volume]/
-└── Music/
-    ├── 01 - Song Name - DTS 5.1_ALAC_16-48.m4a
-    ├── 02 - Song Name - DTS 2.0_ALAC_16-48.m4a
-    ├── 03 - Album Track - FLAC_24-96.flac
-    └── 04 - DSD Track - DSD64_PRESERVED.dsf
+Music/
+├── 01 - Track Name - DSD64_24-88.flac
+├── 02 - Track Name - FLAC_24-96.flac
+└── ...
 ```
 
 ---
 
-## 🎨 User Interface
+## 🎨 Screenshots
 
-### Retro Mode vs. Modern Mode
+### Main Interface - Modern Mode
+*Sleek, adaptive UI with light/dark mode support*
 
-**Retro Mode (Classic iTunes):**
-- Brushed metal gradients
-- Classic light appearance
-- Nostalgic design elements
-- Always light theme
+### Main Interface - Retro Mode
+*Classic iTunes-inspired brushed metal interface with gradients*
 
-**Modern Mode:**
-- Adaptive light/dark appearance
-- System theme integration
-- Clean, minimal design
-- Follows macOS preferences
+### Settings - Player Type
+*Choose between iPod Classic, ePod (DAP), or aPlayer (Android)*
 
-**Toggle in Settings → Appearance**
+### Settings - File Handling
+*Configure DSD conversion, file preservation, and renaming options*
 
-### Main Window Layout
+### Settings - Disc Handling
+*Set up disc identity tagging with custom sub-types*
 
-```
-┌──────────────────────────────────────────────────────┐
-│  🎵 Hi-Res iPod Utility                      [  ]  │
-│  DSD & Hi-Res PCM → ALAC                            │
-├──────────────────────────────────────────────────────┤
-│  Convert To: [ CD ] [ BD ] [ SACD ] [ Vinyl ]       │
-│  Gain: [═══●═════] +0.0 dB                          │
-├──────────────────────────────────────────────────────┤
-│  ⚠️  Quality Adjustments:                           │
-│   • DSD→PCM conversion to 24-bit/88.2 kHz           │
-│   • Resample from 192 kHz → 44.1 kHz                │
-├──────────────────────────────────────────────────────┤
-│  File List:                                          │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ ☑ track01.dsf   │ DSD64 │ Warnings │ Ready   │ │
-│  │ ☑ track02.flac  │ FLAC  │ None     │ Ready   │ │
-│  └────────────────────────────────────────────────┘ │
-├──────────────────────────────────────────────────────┤
-│  iPod Sync: [iPod Classic 160GB ▼] [Sync to iPod]  │
-└──────────────────────────────────────────────────────┘
-```
+### Multi-Stream Selection
+*Extract specific audio streams from MKA files*
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether it's bug fixes, new features, or documentation improvements.
-
-### How to Contribute
-
-1. **Fork the repository**
-2. **Create a feature branch:** `git checkout -b feature/amazing-feature`
-3. **Make your changes** and test thoroughly
-4. **Commit your changes:** `git commit -m 'Add amazing feature'`
-5. **Push to the branch:** `git push origin feature/amazing-feature`
-6. **Open a Pull Request**
-
-### Development Areas
-
-- [ ] **iTunesDB Support** – Full binary format parsing and writing
-- [ ] **Additional Profiles** – More device-specific presets
-- [ ] **Batch Processing** – Queue management and background conversion
-- [ ] **Localization** – Multi-language support (i18n)
-- [ ] **Testing** – Unit and integration tests
-- [ ] **Documentation** – Code comments and user guides
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### Development Setup
-
 ```bash
-# Clone your fork
 git clone https://github.com/yourusername/hipod.git
 cd hipod
-
-# Create a branch
-git checkout -b feature/my-feature
-
-# Open in Xcode
 open HiPod.xcodeproj
-
-# Make changes and test
-# Build with ⌘B, Run with ⌘R
 ```
+
+### Areas for Contribution
+- [ ] iTunesDB binary format parsing/writing improvements
+- [ ] Additional player profiles and device support
+- [ ] Batch processing optimizations
+- [ ] Localization support (i18n)
+- [ ] Automated testing suite
+- [ ] Additional output format options
 
 ---
 
 ## 📝 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for full details.
-
-### MIT License Summary
-
-✅ **Permissions:**
-- Commercial use
-- Modification
-- Distribution
-- Private use
-
-⚠️ **Conditions:**
-- License and copyright notice required
-
-❌ **Limitations:**
-- No liability
-- No warranty
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-### Technologies
-- **[FFmpeg](https://ffmpeg.org/)** – Comprehensive audio/video processing framework
-- **[SoXR](https://sourceforge.net/projects/soxr/)** – High-quality sample rate conversion library
-- **[SwiftUI](https://developer.apple.com/xcode/swiftui/)** – Modern declarative UI framework
-
-### Inspiration
-- **Apple iTunes** – Classic UI design and workflow
-- **Audiophile Communities** – r/audiophile, Head-Fi, Hydrogen Audio
-- **iPod Enthusiasts** – Keeping classic players alive
-
-### Special Thanks
-- The open-source community for continuous support
-- Beta testers for valuable feedback
-- Contributors who help improve HiPod
+- **FFmpeg** – Powerful audio/video conversion engine
+- **SoXR** – High-quality sample rate conversion library
+- **Apple** – iPod Classic, ALAC codec, SwiftUI framework
+- Inspired by the classic iTunes interface and audiophile communities worldwide
 
 ---
 
-## 📮 Support
+## 📮 Support & Contact
 
-### Get Help
-- **📖 Documentation:** [Wiki](https://github.com/yourusername/hipod/wiki)
-- **💬 Discussions:** [GitHub Discussions](https://github.com/yourusername/hipod/discussions)
-- **🐛 Bug Reports:** [GitHub Issues](https://github.com/yourusername/hipod/issues)
-- **✉️ Email:** your.email@example.com
-
-### Report Issues
-When reporting bugs, please include:
-1. macOS version
-2. HiPod version
-3. Steps to reproduce
-4. Expected vs. actual behavior
-5. Console logs (if applicable)
+- **Issues:** [GitHub Issues](https://github.com/yourusername/hipod/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/yourusername/hipod/discussions)
+- **Email:** your.email@example.com
 
 ---
 
 ## 🗺️ Roadmap
 
-### Version 1.0 (Current)
-- [x] Core conversion engine
-- [x] iPod/ePod/aPlayer modes
-- [x] Multi-stream MKA support
-- [x] DSD conversion
-- [x] Retro UI mode
-
-### Version 1.1 (Planned)
-- [ ] Enhanced iTunesDB support
-- [ ] Playlist generation
-- [ ] Batch conversion queue
-- [ ] Export/import settings
-
-### Version 1.2 (Future)
-- [ ] Custom FFmpeg filter chains
-- [ ] Network sync support
-- [ ] Plug-in architecture
-- [ ] Automated update checking
-
-### Version 2.0 (Vision)
-- [ ] Apple Music integration
-- [ ] Cloud storage sync
-- [ ] Mobile companion app
-- [ ] Advanced DSP options
+- [ ] **v1.0** – Initial release with core features
+- [ ] **v1.1** – Enhanced iTunesDB support
+- [ ] **v1.2** – Batch conversion queue
+- [ ] **v1.3** – Custom FFmpeg filter chains
+- [ ] **v2.0** – Plugin architecture for custom processors
+- [ ] **v2.1** – Network sync support
+- [ ] **v2.2** – Playlist management
 
 ---
 
-## ❓ Frequently Asked Questions
-
-### General
-
-**Q: Is HiPod free?**  
-A: Yes! HiPod is completely free and open-source under the MIT License.
-
-**Q: Does HiPod work on Apple Silicon Macs?**  
-A: Yes! HiPod is a universal binary supporting both Intel and Apple Silicon.
+## ❓ FAQ
 
 **Q: Will this work with my iPod Nano/Shuffle?**  
-A: Currently optimized for iPod Classic/Video/Photo. Nano/Shuffle support is planned.
+A: HiPod is optimized for iPod Classic/Video/Photo models with the iPod_Control structure. Nano/Shuffle support is planned for future releases.
 
-### Audio Quality
+**Q: Does this modify my original files?**  
+A: No! All conversions create new files in a designated output folder. Your originals remain untouched.
 
-**Q: Is ALAC really lossless?**  
-A: Yes! ALAC is mathematically lossless – identical to the source when decoded.
+**Q: What's the difference between ePod and aPlayer modes?**  
+A: ePod mode is for generic DAPs (FiiO, Sony, etc.) with simple file copying. aPlayer mode is specifically for Android devices with Music folder organization.
 
-**Q: Does DSD conversion reduce quality?**  
-A: DSD→PCM is technically lossy, but HiPod uses high-quality filtering to preserve fidelity.
-
-**Q: What's the best profile for my iPod Classic?**  
-A: **CD (16/44.1)** offers guaranteed compatibility. Higher specs may not play on all models.
-
-### File Handling
-
-**Q: Does HiPod modify my original files?**  
-A: No! All conversions create new files. Your originals are never touched.
-
-**Q: Where do converted files go?**  
-A: By default: `~/Music/HiRes-iPod-[timestamp]/`. You can change this in settings.
-
-**Q: Can I convert Apple Music files?**  
-A: No. DRM-protected files from streaming services cannot be converted.
-
-### Device Compatibility
-
-**Q: What devices are supported?**  
-A: iPod Classic/Video/Photo, most Hi-Res DAPs, and Android devices with USB storage.
-
-**Q: Do I need iTunes installed?**  
-A: No! HiPod works independently without iTunes.
-
-**Q: Can I sync to multiple devices?**  
-A: Yes! Scan and select different devices as needed.
-
-### Technical
-
-**Q: Why does HiPod need FFmpeg?**  
-A: FFmpeg handles audio decoding, encoding, and processing. It's bundled with the app.
-
-**Q: How long does conversion take?**  
-A: Depends on file size and settings. DSD→PCM takes longer than simple format changes.
+**Q: Can I convert Apple Music/iTunes Store purchases?**  
+A: No. HiPod only works with DRM-free audio files. Protected AAC files from iTunes Store cannot be converted.
 
 **Q: Does the retro UI affect performance?**  
-A: No! UI styling is purely visual and doesn't impact conversion speed.
+A: Not at all! The retro UI is purely cosmetic and has no impact on conversion speed or quality.
+
+**Q: How does DSD conversion work?**  
+A: DSD files are converted to PCM using FFmpeg with -3dB headroom to prevent clipping and an ultrasonic low-pass filter. You can configure target sample rates in Settings.
 
 ---
 
 <div align="center">
 
-## 💝 Made with ❤️ for Audiophiles & iPod Enthusiasts
+**Made with ❤️ for audiophiles and iPod enthusiasts**
 
-**Keep the classic alive. Embrace hi-res audio.**
+⭐️ Star this repo if you find it useful!
 
-⭐️ **Star this repo** if HiPod helps your workflow!
-
-[🐛 Report Bug](https://github.com/yourusername/hipod/issues) • [✨ Request Feature](https://github.com/yourusername/hipod/issues) • [🤝 Contribute](https://github.com/yourusername/hipod/pulls)
-
----
-
-**© 2025 HiPod Project | MIT License**
+[Report Bug](https://github.com/yourusername/hipod/issues) • [Request Feature](https://github.com/yourusername/hipod/issues) • [Contribute](https://github.com/yourusername/hipod/pulls)
 
 </div>
-
-
