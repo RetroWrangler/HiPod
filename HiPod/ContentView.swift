@@ -899,7 +899,10 @@ final class PrepViewModel: ObservableObject {
         guard !isConverting else { return }
         
         ensureTempFolder()
-        DispatchQueue.main.async { self.isConverting = true }
+        await MainActor.run {
+            self.isConverting = true
+            print("🎵 VINYL: isConverting set to TRUE")
+        }
         
         // Check if we should preserve original files (for aPlayer/ePod only)
         let shouldPreserveOriginal = preserveOriginalFile && (playerType == "aplayer" || playerType == "epod")
@@ -907,14 +910,20 @@ final class PrepViewModel: ObservableObject {
         if shouldPreserveOriginal {
             // Simple copy mode - no conversion
             await copyOriginalFiles()
-            DispatchQueue.main.async { self.isConverting = false }
+            await MainActor.run {
+                self.isConverting = false
+                print("🎵 VINYL: isConverting set to FALSE (preserve mode done)")
+            }
             return
         }
         
         // Normal conversion mode
         guard let ffmpeg = ffmpegPath else {
-            DispatchQueue.main.async { self.brewStatus = "❌ FFmpeg not found - check bundled binaries" }
-            DispatchQueue.main.async { self.isConverting = false }
+            await MainActor.run {
+                self.brewStatus = "❌ FFmpeg not found - check bundled binaries"
+                self.isConverting = false
+                print("🎵 VINYL: isConverting set to FALSE (no ffmpeg)")
+            }
             return
         }
         
@@ -924,33 +933,83 @@ final class PrepViewModel: ObservableObject {
         var streamTypeGroups: [String: [(fileIndex: Int, streamInfo: AudioStreamInfo)]] = [:]
         
         for (fileIndex, file) in files.enumerated() {
+            print("📋 File \(fileIndex): \(file.url.lastPathComponent)")
+            print("   - Audio streams count: \(file.audioStreams.count)")
+            print("   - Selected stream indices: \(file.selectedStreamIndices)")
+            
+            // If no audio streams detected, try to create a default one from FormatInfo
+            if file.audioStreams.isEmpty, let info = file.info {
+                print("   ⚠️ No audio streams detected, creating default from FormatInfo")
+                let defaultStream = AudioStreamInfo(
+                    index: 0,
+                    codecName: info.codecName,
+                    sampleRate: info.sampleRate,
+                    bitsPerRawSample: info.bitsPerRawSample,
+                    channels: info.channels,
+                    channelLayout: nil
+                )
+                // Update the file with the default stream
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    if let idx = self.files.firstIndex(where: { $0.id == file.id }) {
+                        self.files[idx].audioStreams = [defaultStream]
+                        self.files[idx].selectedStreamIndices = [0]
+                    }
+                }
+                // Use the default stream for this conversion
+                let streamType = defaultStream.displayName
+                if streamTypeGroups[streamType] == nil {
+                    streamTypeGroups[streamType] = []
+                }
+                streamTypeGroups[streamType]?.append((fileIndex, defaultStream))
+                continue
+            }
+            
             let selectedStreams = file.selectedStreamIndices.sorted()
+            if selectedStreams.isEmpty {
+                print("   ⚠️ No streams selected for this file")
+            }
+            
             for streamIdx in selectedStreams {
                 if streamIdx < file.audioStreams.count {
                     let stream = file.audioStreams[streamIdx]
                     let streamType = stream.displayName
+                    print("   ✓ Adding stream \(streamIdx): \(streamType)")
                     if streamTypeGroups[streamType] == nil {
                         streamTypeGroups[streamType] = []
                     }
                     streamTypeGroups[streamType]?.append((fileIndex, stream))
+                } else {
+                    print("   ❌ Selected stream index \(streamIdx) out of bounds (count: \(file.audioStreams.count))")
                 }
             }
+        }
+        
+        print("📊 Stream type groups: \(streamTypeGroups.keys.count) types")
+        if streamTypeGroups.isEmpty {
+            print("❌ No streams to convert! This is why nothing happens.")
+            await MainActor.run {
+                self.brewStatus = "❌ No audio streams detected. Try re-probing files."
+                self.isConverting = false
+                print("🎵 VINYL: isConverting set to FALSE (no streams)")
+            }
+            return
         }
         
         // Sort stream types for consistent ordering
         let sortedStreamTypes = streamTypeGroups.keys.sorted()
         var trackNumber = 1
-        var workingFiles = files
 
         for streamType in sortedStreamTypes {
             guard let group = streamTypeGroups[streamType] else { continue }
             
             for (fileIndex, streamInfo) in group {
-                workingFiles[fileIndex].status = .converting
-                let currentFiles = workingFiles
-                DispatchQueue.main.async { self.files = currentFiles }
+                // Update file status on main thread
+                await MainActor.run {
+                    self.files[fileIndex].status = .converting
+                }
 
-                let input = workingFiles[fileIndex].url
+                let input = files[fileIndex].url
                 let base = input.deletingPathExtension().lastPathComponent
                 
                 let isNonIPod = playerType == "aplayer" || playerType == "epod"
@@ -980,17 +1039,19 @@ final class PrepViewModel: ObservableObject {
                     
                     do {
                         try fm.copyItem(at: input, to: outURL)
-                        workingFiles[fileIndex].status = .done
-                        workingFiles[fileIndex].outputURL = outURL
+                        await MainActor.run {
+                            self.files[fileIndex].status = .done
+                            self.files[fileIndex].outputURL = outURL
+                        }
                         print("✅ DSD copy successful: \(outURL.lastPathComponent)")
                     } catch {
-                        workingFiles[fileIndex].status = .failed
-                        workingFiles[fileIndex].warnings.append("DSD copy failed: \(error.localizedDescription)")
+                        await MainActor.run {
+                            self.files[fileIndex].status = .failed
+                            self.files[fileIndex].warnings.append("DSD copy failed: \(error.localizedDescription)")
+                        }
                         print("❌ DSD copy failed: \(error.localizedDescription)")
                     }
                     
-                    let updatedFiles = workingFiles
-                    DispatchQueue.main.async { self.files = updatedFiles }
                     trackNumber += 1
                     continue
                 }
@@ -1188,37 +1249,39 @@ final class PrepViewModel: ObservableObject {
                 if !stdout.isEmpty { print("📝 Stdout: \(stdout)") }
                 if !stderr.isEmpty { print("⚠️ Stderr: \(stderr)") }
                 
-                if code == 0 { 
-                    workingFiles[fileIndex].status = .done
-                    workingFiles[fileIndex].outputURL = outURL 
+                if code == 0 {
+                    await MainActor.run {
+                        self.files[fileIndex].status = .done
+                        self.files[fileIndex].outputURL = outURL
+                    }
                     print("✅ Conversion successful: \(outURL.lastPathComponent)")
-                } else { 
-                    workingFiles[fileIndex].status = .failed
+                } else {
                     let errorMsg = stderr.split(separator: "\n").last.map(String.init) ?? "unknown error"
-                    workingFiles[fileIndex].warnings.append("FFmpeg failed: \(errorMsg)")
+                    await MainActor.run {
+                        self.files[fileIndex].status = .failed
+                        self.files[fileIndex].warnings.append("FFmpeg failed: \(errorMsg)")
+                    }
                     print("❌ Conversion failed: \(errorMsg)")
                 }
-                
-                let updatedFiles = workingFiles
-                DispatchQueue.main.async { self.files = updatedFiles }
                 
                 trackNumber += 1
             }
         }
         
-        DispatchQueue.main.async { self.isConverting = false }
+        await MainActor.run {
+            self.isConverting = false
+            print("🎵 VINYL: isConverting set to FALSE (all conversions done)")
+        }
     }
     
     // MARK: Copy Original Files (Preserve mode)
     private func copyOriginalFiles() async {
         print("📁 Preserve Original Files mode - copying without conversion")
         
-        var workingFiles = files
-        
         for (index, file) in files.enumerated() {
-            workingFiles[index].status = .converting
-            let currentFiles = workingFiles
-            DispatchQueue.main.async { self.files = currentFiles }
+            await MainActor.run {
+                self.files[index].status = .converting
+            }
             
             let input = file.url
             let fileName = input.lastPathComponent
@@ -1239,17 +1302,18 @@ final class PrepViewModel: ObservableObject {
                 
                 try fm.copyItem(at: input, to: finalURL)
                 
-                workingFiles[index].status = .done
-                workingFiles[index].outputURL = finalURL
+                await MainActor.run {
+                    self.files[index].status = .done
+                    self.files[index].outputURL = finalURL
+                }
                 print("✅ Copy successful: \(finalURL.lastPathComponent)")
             } catch {
-                workingFiles[index].status = .failed
-                workingFiles[index].warnings.append("Copy failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.files[index].status = .failed
+                    self.files[index].warnings.append("Copy failed: \(error.localizedDescription)")
+                }
                 print("❌ Copy failed: \(error.localizedDescription)")
             }
-            
-            let updatedFiles = workingFiles
-            DispatchQueue.main.async { self.files = updatedFiles }
         }
     }
 
@@ -1295,6 +1359,7 @@ struct ContentView: View {
     @AppStorage("useRetroUI") private var useRetroUI = false
     @AppStorage("forceAppearance") private var forceAppearance = "system"
     @Environment(\.colorScheme) private var systemColorScheme
+    @EnvironmentObject var settingsCoordinator: SettingsCoordinator
     
     private var scanButtonLabel: String {
         switch vm.playerType {
@@ -1577,9 +1642,33 @@ struct ContentView: View {
     private var brushedMetalHeader: some View {
         VStack(spacing: 8) {
             HStack {
-                Image(systemName: "ipod")
-                    .font(.system(size: 24, weight: .light))
-                    .foregroundColor(primaryTextColor.opacity(0.7))
+                // Dynamic icon based on player type - clickable to cycle through modes
+                Button(action: {
+                    // Cycle through player types: iPod → ePod → aPlayer → iPod
+                    switch vm.playerType {
+                    case "ipod":
+                        vm.playerType = "epod"
+                    case "epod":
+                        vm.playerType = "aplayer"
+                    case "aplayer":
+                        vm.playerType = "ipod"
+                    default:
+                        vm.playerType = "ipod"
+                    }
+                }) {
+                    Image(systemName: playerTypeIcon)
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(playerTypeColor)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("Click to cycle player type: \(nextPlayerTypeName)")
+                .onHover { isHovered in
+                    if isHovered {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Hi-Res iPod Utility")
@@ -1588,8 +1677,6 @@ struct ContentView: View {
                     
                     // Dynamic subtitle based on player type and preserve mode
                     Text(headerSubtitle)
-                        .font(.system(size: 11))
-                        .foregroundColor(secondaryTextColor)
                         .font(.system(size: 11))
                         .foregroundColor(secondaryTextColor)
                 }
@@ -1621,6 +1708,35 @@ struct ContentView: View {
                 }
             }
         )
+    }
+    
+    // MARK: - Player Type Icon & Color
+    
+    private var playerTypeIcon: String {
+        switch vm.playerType {
+        case "ipod": return "ipod"
+        case "epod": return "hifispeaker.2"
+        case "aplayer": return "smartphone"
+        default: return "ipod"
+        }
+    }
+    
+    private var playerTypeColor: Color {
+        switch vm.playerType {
+        case "ipod": return .blue
+        case "epod": return .orange
+        case "aplayer": return .green
+        default: return .blue
+        }
+    }
+    
+    private var nextPlayerTypeName: String {
+        switch vm.playerType {
+        case "ipod": return "Switch to ePod"
+        case "epod": return "Switch to aPlayer"
+        case "aplayer": return "Switch to iPod"
+        default: return "Switch player type"
+        }
     }
     
     @Environment(\.colorScheme) private var colorScheme
@@ -1682,21 +1798,23 @@ struct ContentView: View {
     
     private var classicControlBar: some View {
         VStack(spacing: 12) {
-            // Profile selector and gain control
-            HStack {
+            // Profile selector, gain control, vinyl, and buttons - all equal width
+            HStack(spacing: 12) {
+                // Convert To Profile selector
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Convert To:")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(primaryTextColor)
                     
                     // Simple horizontal buttons instead of segmented control
-                    HStack(spacing: 8) {
+                    VStack(spacing: 8) {
                         ForEach(availableProfiles, id: \.self) { profile in
                             HStack(spacing: 4) {
                                 Button(action: { vm.profile = profile }) {
                                     Text(profile.displayName(for: vm.playerType))
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(vm.profile == profile ? .white : primaryTextColor)
+                                        .frame(maxWidth: .infinity)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
                                         .background(
@@ -1706,21 +1824,9 @@ struct ContentView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .disabled(vm.preserveOriginalFile && (vm.playerType == "aplayer" || vm.playerType == "epod"))
-                                
-                                // Info button for Vinyl profile explaining OGG-FLAC
-                                if profile == .vinyl && vm.convertToMatchDiscType && (vm.playerType == "aplayer" || vm.playerType == "epod") {
-                                    Button(action: {}) {
-                                        Image(systemName: "info.circle")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.blue)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .help("Vinyl uses lossless FLAC codec in OGG container (not lossy Vorbis)")
-                                }
                             }
                         }
                     }
-                    .opacity((vm.preserveOriginalFile && (vm.playerType == "aplayer" || vm.playerType == "epod")) ? 0.5 : 1.0)
                     
                     // Show info when disabled
                     if vm.preserveOriginalFile && (vm.playerType == "aplayer" || vm.playerType == "epod") {
@@ -1728,12 +1834,14 @@ struct ContentView: View {
                             Image(systemName: "info.circle.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(.orange)
-                            Text("Disabled: Preserving original files")
-                                .font(.system(size: 10))
+                            Text("Disabled: Preserving files")
+                                .font(.system(size: 9))
                                 .foregroundColor(.orange)
                         }
                     }
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
                 .padding(16)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
@@ -1742,32 +1850,42 @@ struct ContentView: View {
                 )
                 
                 // Gain adjustment control
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(spacing: 16) {
                     Text("Gain Adjustment:")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(primaryTextColor)
                     
-                    HStack(spacing: 12) {
-                        Slider(value: $vm.gainAdjustment, in: -20.0...20.0, step: 0.5)
-                            .frame(width: 180)
+                    VStack(spacing: 8) {
+                        HStack(spacing: 12) {
+                            Text("-20")
+                                .font(.system(size: 10))
+                                .foregroundColor(secondaryTextColor)
+                            
+                            Slider(value: $vm.gainAdjustment, in: -20.0...20.0, step: 0.5)
+                            
+                            Text("+20")
+                                .font(.system(size: 10))
+                                .foregroundColor(secondaryTextColor)
+                        }
                         
                         Text(String(format: "%+.1f dB", vm.gainAdjustment))
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(primaryTextColor)
-                            .frame(width: 70, alignment: .leading)
-                        
-                        Button("Reset") {
-                            vm.gainAdjustment = 0.0
-                        }
-                        .font(.system(size: 11))
-                        .foregroundColor(.blue)
-                        .buttonStyle(PlainButtonStyle())
                     }
                     
-                    Text("Applies to all conversions (DSD already includes -3dB headroom)")
-                        .font(.system(size: 10))
+                    Button("Reset to 0 dB") {
+                        vm.gainAdjustment = 0.0
+                    }
+                    .font(.system(size: 11))
+                    .foregroundColor(.blue)
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Text("Applies to all conversions")
+                        .font(.system(size: 9))
                         .foregroundColor(secondaryTextColor)
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
                 .padding(16)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
@@ -1775,14 +1893,32 @@ struct ContentView: View {
                         .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
                 )
                 
-                Spacer()
+                // Vinyl record animation - much larger
+                VStack {
+                    Spacer()
+                    VinylRecordView(isSpinning: vm.isConverting || vm.syncStatus != .idle)
+                        .frame(width: 140, height: 140)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(textBackgroundColor)
+                        .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                )
                 
                 // Classic iTunes buttons
-                HStack(spacing: 8) {
+                VStack(spacing: 12) {
                     classiciTunesButton("File/Format Support", action: { vm.showingFormatSupport = true })
                     
                     classiciTunesButton("Choose Files…", action: vm.chooseFiles)
                         .keyboardShortcut("o", modifiers: [.command])
+                    
+                    if !vm.files.isEmpty {
+                        classiciTunesButton("Re-probe Files", action: { Task { await vm.probeAll() } })
+                    }
                     
                     if let _ = vm.tempOutFolder {
                         classiciTunesButton("Show in Finder", action: vm.revealOutputFolder)
@@ -1790,6 +1926,14 @@ struct ContentView: View {
                         classiciTunesButton("Prepare Folder") { vm.ensureTempFolder() }
                     }
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(textBackgroundColor)
+                        .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                )
             }
         }
         .padding(.horizontal, 16)
@@ -2605,4 +2749,142 @@ struct ContentView: View {
         }
     }
 }
+
+// MARK: - Vinyl Record Animation View
+struct VinylRecordView: View {
+    let isSpinning: Bool
+    @State private var rotationAngle: Double = 0
+    @State private var needleDown: Bool = false
+    
+    // Break up complex gradients into computed properties
+    private var vinylGradient: RadialGradient {
+        RadialGradient(
+            gradient: Gradient(colors: [
+                Color(red: 0.1, green: 0.1, blue: 0.1),
+                Color.black
+            ]),
+            center: .center,
+            startRadius: 15,
+            endRadius: 70
+        )
+    }
+    
+    private var labelGradient: RadialGradient {
+        RadialGradient(
+            gradient: Gradient(colors: [
+                Color(red: 0.8, green: 0.2, blue: 0.2),
+                Color(red: 0.6, green: 0.1, blue: 0.1)
+            ]),
+            center: .center,
+            startRadius: 0,
+            endRadius: 20
+        )
+    }
+    
+    private var tonearmGradient: LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color(red: 0.6, green: 0.6, blue: 0.6),
+                Color(red: 0.4, green: 0.4, blue: 0.4)
+            ]),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+    
+    var body: some View {
+        ZStack {
+            vinylDisc
+            tonearm
+        }
+        .onChange(of: isSpinning) { newValue in
+            print("🎵 VINYL VIEW: isSpinning changed to \(newValue)")
+            
+            withAnimation {
+                needleDown = newValue
+            }
+            
+            if newValue {
+                // Start spinning
+                print("🎵 VINYL VIEW: Starting animation")
+                withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                    rotationAngle = 360
+                }
+            } else {
+                // Stop spinning - animate back to 0
+                print("🎵 VINYL VIEW: Stopping animation")
+                withAnimation(.easeOut(duration: 1.0)) {
+                    rotationAngle = 0
+                }
+            }
+        }
+        .onAppear {
+            print("🎵 VINYL VIEW: View appeared, isSpinning = \(isSpinning)")
+            if isSpinning {
+                needleDown = true
+                withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                    rotationAngle = 360
+                }
+            }
+        }
+    }
+    
+    // MARK: - Vinyl Disc Components
+    
+    private var vinylDisc: some View {
+        ZStack {
+            // Outer black disc
+            Circle()
+                .fill(vinylGradient)
+                .frame(width: 120, height: 120)
+            
+            // Grooves (concentric circles)
+            grooves
+            
+            // Center label
+            Circle()
+                .fill(labelGradient)
+                .frame(width: 35, height: 35)
+            
+            // Center hole
+            Circle()
+                .fill(Color.black)
+                .frame(width: 12, height: 12)
+        }
+        .rotationEffect(.degrees(rotationAngle))
+    }
+    
+    private var grooves: some View {
+        ForEach(0..<15) { i in
+            Circle()
+                .stroke(Color.white.opacity(0.1), lineWidth: 0.8)
+                .frame(width: CGFloat(115 - i * 5), height: CGFloat(115 - i * 5))
+        }
+    }
+    
+    // MARK: - Tonearm Components
+    
+    private var tonearm: some View {
+        ZStack {
+            // Arm
+            RoundedRectangle(cornerRadius: 2)
+                .fill(tonearmGradient)
+                .frame(width: 50, height: 4)
+                .offset(x: 25, y: 0)
+            
+            // Cartridge/Needle tip
+            Circle()
+                .fill(Color(red: 0.5, green: 0.5, blue: 0.5))
+                .frame(width: 8, height: 8)
+                .offset(x: 50, y: 0)
+        }
+        .rotationEffect(
+            .degrees(needleDown ? -25 : -45),
+            anchor: .leading
+        )
+        .offset(x: -45, y: -45)
+    }
+}
+
+
 

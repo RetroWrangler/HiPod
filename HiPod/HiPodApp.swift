@@ -7,15 +7,54 @@
 
 import SwiftUI
 
+// Settings coordinator to manage which tab is selected
+class SettingsCoordinator: ObservableObject {
+    @Published var selectedTab: Int = 0
+    @Published var shouldOpenSettings: Bool = false
+    
+    // Function to open settings at a specific tab
+    func openSettings(at tab: Int) {
+        selectedTab = tab
+        shouldOpenSettings = true
+        
+        // Small delay to ensure tab is set before window opens
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Try different selectors for different macOS versions
+            if #available(macOS 13, *) {
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            } else {
+                NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.shouldOpenSettings = false
+            }
+        }
+    }
+}
+
 @main
 struct HiPodApp: App {
+    @StateObject private var settingsCoordinator = SettingsCoordinator()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(settingsCoordinator)
         }
         
         Settings {
             SettingsView()
+                .environmentObject(settingsCoordinator)
+        }
+        .commands {
+            // Ensure Settings menu item exists
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings...") {
+                    settingsCoordinator.openSettings(at: settingsCoordinator.selectedTab)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 }
@@ -24,9 +63,10 @@ struct HiPodApp: App {
 struct SettingsView: View {
     @AppStorage("useRetroUI") private var useRetroUI = false
     @AppStorage("forceAppearance") private var forceAppearance = "system" // "system", "light", "dark"
+    @EnvironmentObject var settingsCoordinator: SettingsCoordinator
     
     var body: some View {
-        TabView {
+        TabView(selection: $settingsCoordinator.selectedTab) {
             AppearanceSettings(useRetroUI: $useRetroUI, forceAppearance: $forceAppearance)
                 .tabItem {
                     Label("Appearance", systemImage: "paintbrush")
